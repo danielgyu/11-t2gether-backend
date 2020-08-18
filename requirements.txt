@@ -1,0 +1,19 @@
+asgiref @ file:///tmp/build/80754af9/asgiref_1594338739818/work
+bcrypt==3.1.7
+certifi==2020.6.20
+cffi==1.14.1
+Django==3.0.3
+django-cors-headers==3.4.0
+mkl-fft==1.1.0
+mkl-random==1.1.1
+mkl-service==2.3.0
+mysql-client==0.0.1
+mysqlclient==2.0.1
+numpy @ file:///tmp/build/80754af9/numpy_and_numpy_base_1596233721170/work
+pandas @ file:///tmp/build/80754af9/pandas_1596825826607/work
+pycparser==2.20
+PyJWT==1.7.1
+python-dateutil==2.8.1
+pytz==2020.1
+six==1.15.0
+sqlparse==0.3.1
