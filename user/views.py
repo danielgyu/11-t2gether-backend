@@ -31,26 +31,26 @@ class JoinView(View):
             input_email = data['email']
             input_pw    = data['password']
             input_phone = data['phone']
-            input_birth = data['birth']
-            input_news  = data['newsletter']
+            input_birth = data['birthdate']
+            input_news  = data['is_newsletter_subscribed']
 
             if ('@' not in input_email) or ('.' not in input_email):
                return JsonResponse({'message' : 'EMAIL_VALIDATION_FAILED'}, status = 400)
-            if pw_validate(input_pw) == False:
+            if not(pw_validate(input_pw)):
                 return JsonResponse({'message' : 'PASSWORD_CHECK_FAILED'}, status = 400)
+
+            User(
+                first_name               = input_first,
+                last_name                = input_last,
+                email                    = input_email,
+                phone                    = input_phone,
+                password                 = (bcrypt.hashpw(input_pw.encode('utf-8'), bcrypt.gensalt())).decode('utf-8'),
+                birthdate                = input_birth,
+                is_newsletter_subscribed = input_news,
+                is_top_contributor       = False
+            ).save()
         except KeyError:
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
-
-        User(
-            first_name      = input_first,
-            last_name       = input_last,
-            email           = input_email,
-            phone           = input_phone,
-            password        = (bcrypt.hashpw(input_pw.encode('utf-8'), bcrypt.gensalt())).decode('utf-8'),
-            birth           = input_birth,
-            newsletter      = input_news,
-            top_contributor = False
-        ).save()
         return JsonResponse({'message' : 'SUCCESS'}, status = 200)
 
     def get(self, request):
@@ -62,11 +62,11 @@ class LogInView(View):
             data = json.loads(request.body)
             input_email = data['email']
             input_pw    = data['password']
+
+            saved_password = User.objects.get(email = input_email).password
+            if bcrypt.checkpw(input_pw.encode('utf-8'), saved_password.encode('utf-8')):
+                login_token = jwt.encode({'user_id' : User.objects.get(password = saved_password).id}, my_setting.SECRET_KEY, algorithm = 'HS256')
+                return JsonResponse({'message' : login_token.decode('utf-8')}, status = 200)
         except KeyError:
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
-
-        saved_password = User.objects.get(email = input_email).password
-        if bcrypt.checkpw(input_pw.encode('utf-8'), saved_password.encode('utf-8')):
-            login_token = jwt.encode({'user_id' : User.objects.get(password = saved_password).id}, my_setting.SECRET_KEY, algorithm = 'HS256')
-            return JsonResponse({'message' : login_token.decode('utf-8')}, status = 200)
         return JsonResponse({'message' : 'LOGIN_FAILED'}, status = 400)
