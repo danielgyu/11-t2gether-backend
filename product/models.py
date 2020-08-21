@@ -20,7 +20,7 @@ class Product(models.Model):
     classification = models.ForeignKey(Type, on_delete = models.CASCADE)
     guide          = models.ForeignKey(Guide, on_delete = models.CASCADE)
     main_name      = models.CharField(max_length = 100)
-    main_image     = models.URLField(max_length = 400)
+    main_image     = models.URLField(max_length = 3000)
     main_price     = models.DecimalField(max_digits = 6, decimal_places = 2, null = True)
     product_name   = models.CharField(max_length = 100)
     stock          = models.IntegerField()
@@ -43,8 +43,8 @@ class Size(models.Model):
     product = models.ForeignKey(Product, on_delete = models.CASCADE)
     unit    = models.CharField(max_length = 100, null = True)
     price   = models.DecimalField(max_digits = 6, decimal_places = 2, null = True)
-    image   = models.URLField(max_length = 700, null = True)
+    image   = models.URLField(max_length = 3000, null = True)
 
 class Image(models.Model):
     product = models.ForeignKey(Product, on_delete = models.CASCADE)
-    url     = models.URLField(max_length = 700)
+    url     = models.URLField(max_length = 3000)
