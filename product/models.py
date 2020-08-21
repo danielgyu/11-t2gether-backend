@@ -20,27 +20,31 @@ class Product(models.Model):
     classification = models.ForeignKey(Type, on_delete = models.CASCADE)
     guide          = models.ForeignKey(Guide, on_delete = models.CASCADE)
     main_name      = models.CharField(max_length = 100)
-    main_image     = models.URLField()
+    main_image     = models.URLField(max_length = 400)
     main_price     = models.DecimalField(max_digits = 6, decimal_places = 2, null = True)
     product_name   = models.CharField(max_length = 100)
     stock          = models.IntegerField()
 
+class Filter(models.Model):
+    product = models.ForeignKey(Product, on_delete = models.CASCADE)
+    refine  = models.ForeignKey('Refine', on_delete = models.CASCADE)
+
 class Refine(models.Model):
     name     = models.CharField(max_length = 100)
     category = models.PositiveSmallIntegerField()
-    product  = models.ManyToManyField(Product)
+    product  = models.ManyToManyField(Product, through = Filter)
 
 class Information(models.Model):
     product     = models.OneToOneField(Product, on_delete = models.CASCADE)
-    description = models.CharField(max_length = 300)
-    ingredient  = models.CharField(max_length = 200)
+    description = models.TextField()
+    ingredient  = models.TextField()
 
 class Size(models.Model):
     product = models.ForeignKey(Product, on_delete = models.CASCADE)
     unit    = models.CharField(max_length = 100, null = True)
     price   = models.DecimalField(max_digits = 6, decimal_places = 2, null = True)
-    image   = models.URLField(null = True)
+    image   = models.URLField(max_length = 700, null = True)
 
 class Image(models.Model):
     product = models.ForeignKey(Product, on_delete = models.CASCADE)
-    url     = models.URLField()
+    url     = models.URLField(max_length = 700)
