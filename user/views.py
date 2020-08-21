@@ -10,13 +10,10 @@ from .models import User
 import my_setting
 
 def pw_validate(pw):
-    if len(pw) < 8:
-        return False
-    is_largeCase = re.compile('[A-Z]')
-    is_numeric = re.compile('[0-9]')
-    if not(is_largeCase.search(pw)) or not(is_numeric.search(pw)):
-        return False
-    return True
+    regex_pw = re.compile('^(?=.*[a-z])(?=.*\d)(?=.*[A-Z])[a-z\dA-Z]{8,}$')
+    if regex_pw.search(pw):
+        return True
+    return False
 
 class JoinView(View):
     def post(self, request):
@@ -30,14 +27,15 @@ class JoinView(View):
             input_birth = data['birthdate']
             input_news  = data['is_newsletter_subscribed']
 
-            if ('@' not in input_email) or ('.' not in input_email):
+            is_email_format = re.compile('[@]((\.)|(([\w-]+\.)+))')
+            if not(is_email_format.search(input_email)):
                 return JsonResponse({'message' : 'WRONG_EMAIL_FORMAT'}, status = 400)
             if not(pw_validate(input_pw)):
                 return JsonResponse({'message' : 'WRONG_PASSWORD_CONDITION'}, status = 400)
             if User.objects.filter(email = input_email).exists():
-                return JsonResponse({'message' : 'ALREADY_USE_EMAIL'}, status = 400)
+                return JsonResponse({'message' : 'ALREADY_USED_EMAIL'}, status = 400)
             if User.objects.filter(phone = input_phone).exists():
-                return JsonResponse({'message' : 'ALREADY_USE_PHONE_NUMBER'}, status = 400)
+                return JsonResponse({'message' : 'ALREADY_USED_PHONE_NUMBER'}, status = 400)
 
             User(
                 first_name               = input_first,
