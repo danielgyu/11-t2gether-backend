@@ -42,7 +42,10 @@ class JoinView(View):
                 last_name                = input_last,
                 email                    = input_email,
                 phone                    = input_phone,
-                password                 = (bcrypt.hashpw(input_pw.encode(my_setting.ENCODING_FORMAT), bcrypt.gensalt())).decode(my_setting.ENCODING_FORMAT),
+                password                 = (bcrypt.hashpw(
+                                                input_pw.encode(my_setting.ENCODING_FORMAT), 
+                                                bcrypt.gensalt()
+                                            )).decode(my_setting.ENCODING_FORMAT),
                 birthdate                = input_birth,
                 is_newsletter_subscribed = input_news,
                 is_top_contributor       = False
@@ -63,7 +66,8 @@ class LogInView(View):
 
             saved_password = User.objects.get(email = input_email).password
             if bcrypt.checkpw(input_pw.encode(my_setting.ENCODING_FORMAT), saved_password.encode(my_setting.ENCODING_FORMAT)):
-                login_token = jwt.encode({'user_id' : User.objects.get(password = saved_password).id}, my_setting.SECRET_KEY, algorithm = my_setting.HASH_ALGORITHM)
+                target_id = User.objects.get(password = saved_password).id
+                login_token = jwt.encode({'user_id' : target_id}, my_setting.SECRET_KEY, algorithm = my_setting.HASH_ALGORITHM)
                 return JsonResponse({'message' : login_token.decode(my_setting.ENCODING_FORMAT)}, status = 200)
         except KeyError:
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
