@@ -11,9 +11,7 @@ import my_setting
 
 def pw_validate(pw):
     regex_pw = re.compile('^(?=.*[a-z])(?=.*\d)(?=.*[A-Z])[a-z\dA-Z]{8,}$')
-    if regex_pw.search(pw):
-        return True
-    return False
+    return regex_pw.search(pw):
 
 class JoinView(View):
     def post(self, request):
@@ -38,15 +36,12 @@ class JoinView(View):
                 return JsonResponse({'message' : 'ALREADY_USED_PHONE_NUMBER'}, status = 400)
 
             User(
-                first_name               = input_first,
-                last_name                = input_last,
-                email                    = input_email,
-                phone                    = input_phone,
-                password                 = (bcrypt.hashpw(
-                                                input_pw.encode(my_setting.ENCODING_FORMAT), 
-                                                bcrypt.gensalt()
-                                            )).decode(my_setting.ENCODING_FORMAT),
-                birthdate                = input_birth,
+                first_name = input_first,
+                last_name  = input_last,
+                email      = input_email,
+                phone      = input_phone,
+                password   = (bcrypt.hashpw(input_pw.encode(my_setting.ENCODING_FORMAT), bcrypt.gensalt())).decode(my_setting.ENCODING_FORMAT),
+                birthdate  = input_birth,
                 is_newsletter_subscribed = input_news,
                 is_top_contributor       = False
             ).save()
