@@ -11,7 +11,7 @@ import my_setting
 
 def pw_validate(pw):
     regex_pw = re.compile('^(?=.*[a-z])(?=.*\d)(?=.*[A-Z])[a-z\dA-Z]{8,}$')
-    return regex_pw.search(pw):
+    return regex_pw.search(pw)
 
 class JoinView(View):
     def post(self, request):
