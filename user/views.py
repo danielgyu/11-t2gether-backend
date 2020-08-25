@@ -70,27 +70,46 @@ class LogInView(View):
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
         return JsonResponse({'message' : 'WRONG_LOGIN_INFORMATION'}, status = 400)
 
-class UseWishlistView(View):
+class WishlistView(View):
     @login_decorator
     def post(self, request):
         try:
             data             = json.loads(request.body)
             user             = request.user
             input_product_id = data['product_id']
-
             if not(Product.objects.filter(id = input_product_id).exists()):
                 return JsonResponse({'message':'WRONG_PRODUCT_ID'}, status = 400)
 
             target_product_id = Product.objects.get(id = input_product_id)
-
+            res_dict = {}
             if Wishlist.objects.filter(user_id = user, product_id = target_product_id).exists():
                 Wishlist.objects.filter(user_id = user, product_id = target_product_id).delete()
-                return JsonResponse({'message':'SUCCESSFULLY_DELETE_AT_WISHLIST'}, status = 200)
+                res_dict['product_id'] = input_product_id
+                res_dict['is_wished'] = False
+                return JsonResponse({'message':res_dict}, status = 204)
 
             Wishlist(
                 user_id = user,
                 product_id=target_product_id
             ).save()
-            return JsonResponse({'message':'SUCCESSFULLY_ADD_TO_WISHLIST'}, status = 200)
+            res_dict['product_id'] = input_product_id
+            res_dict['is_wished'] = True
+            return JsonResponse({'message':res_dict}, status = 201)
         except KeyError:
             return JsonResponse({'message':'KEY_ERROR'}, status = 400)
+
+    @login_decorator
+    def get(self, request):
+
+        user = request.user
+        wish_products = Wishlist.objects.filter(user_id=user).select_related('product_id')
+        user_wish_list = [{
+            'product_id'    : product.product_id.id,
+            'product_name'  : product.product_id.main_name,
+            'product_price' : product.product_id.main_price,
+            'product_image' : product.product_id.main_image,
+            'size_unit'     : [tea.unit for tea in product.product_id.size_set.all()],
+            'size_price'    : [tea.price for tea in product.product_id.size_set.all()],
+            'size_image'    : [tea.image for tea in product.product_id.size_set.all()],
+        } for product in wish_products]
+        return JsonResponse({'product_list' : user_wish_list}, status = 200)
