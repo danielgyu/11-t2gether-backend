@@ -6,7 +6,9 @@ import re
 from django.views import View
 from django.http  import JsonResponse
 
-from .models import User
+from .models import User, Wishlist
+from product.models import Product
+from .utils import login_decorator
 import my_setting
 
 def pw_validate(pw):
@@ -61,9 +63,34 @@ class LogInView(View):
 
             saved_password = User.objects.get(email = input_email).password
             if bcrypt.checkpw(input_pw.encode(my_setting.ENCODING_FORMAT), saved_password.encode(my_setting.ENCODING_FORMAT)):
-                target_id = User.objects.get(password = saved_password).id
+                target_id = User.objects.get(email = input_email).id
                 login_token = jwt.encode({'user_id' : target_id}, my_setting.SECRET_KEY, algorithm = my_setting.HASH_ALGORITHM)
                 return JsonResponse({'message' : login_token.decode(my_setting.ENCODING_FORMAT)}, status = 200)
         except KeyError:
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
         return JsonResponse({'message' : 'WRONG_LOGIN_INFORMATION'}, status = 400)
+
+class UseWishlistView(View):
+    @login_decorator
+    def post(self, request):
+        try:
+            data             = json.loads(request.body)
+            user             = request.user
+            input_product_id = data['product_id']
+
+            if not(Product.objects.filter(id = input_product_id).exists()):
+                return JsonResponse({'message':'WRONG_PRODUCT_ID'}, status = 400)
+
+            target_product_id = Product.objects.get(id = input_product_id)
+
+            if Wishlist.objects.filter(user_id = user, product_id = target_product_id).exists():
+                Wishlist.objects.filter(user_id = user, product_id = target_product_id).delete()
+                return JsonResponse({'message':'SUCCESSFULLY_DELETE_AT_WISHLIST'}, status = 200)
+
+            Wishlist(
+                user_id = user,
+                product_id=target_product_id
+            ).save()
+            return JsonResponse({'message':'SUCCESSFULLY_ADD_TO_WISHLIST'}, status = 200)
+        except KeyError:
+            return JsonResponse({'message':'KEY_ERROR'}, status = 400)
