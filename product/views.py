@@ -3,26 +3,7 @@ import json
 from django.views import View
 from django.http  import JsonResponse
 
-from .models      import Product, Size
-
-def query_debugger(func):
-    import functools
-    from django.db import connection, reset_queries
-    import time, json
-    @functools.wraps(func)
-    def inner_func(*args, **kwargs):
-        reset_queries()
-        start_queries = len(connection.queries)
-        start = time.perf_counter()
-        result = func(*args, **kwargs)
-        end = time.perf_counter()
-        end_queries = len(connection.queries)
-
-        print(f"Function : {func.__name__}")
-        print(f"Number of Queries : {end_queries - start_queries}")
-        print(f"Finished in : {(end - start):.2f}s")
-        return result
-    return inner_func
+from .models      import Product, Size, Filter
 
 class AllTeaView(View):
     def get(self, request):
@@ -62,13 +43,11 @@ class TeaDetailView(View):
         return JsonResponse({'product_detail' : product_detail}, status = 200)
 
 class RefineView(View):
-    @query_debugger
     def post(self, request):
-        data     = json.loads(request.body)
-        styles   = data['styles']
-        teas     = data['types']
+        styles   = request.GET.getlist('style', None)
+        teas     = request.GET.getlist('type', None)
         all_teas = Product.objects.prefetch_related('filter_set', 'refine_set', 'size_set')
-        refines = products = None
+        refines = products = filters = None
 
         if styles and not teas:
             for style in styles:
@@ -84,6 +63,8 @@ class RefineView(View):
                 all_teas = all_teas.filter(refine__name = refine)
             products = [product for product in all_teas]
 
+        filters  = Filter.objects.filter(product__main_name__in=[product.main_name for product in products])
+
         tea_list = [{
             'product_id'    : product.id,
             'product_name'  : product.main_name,
@@ -92,6 +73,7 @@ class RefineView(View):
             'size_unit'     : [tea.unit for tea in product.size_set.all()],
             'size_price'    : [tea.unit for tea in product.size_set.all()],
             'size_image'    : [tea.unit for tea in product.size_set.all()],
+            'refine'        : list(filters.values_list('refine__category', 'refine__name').distinct()),
         } for product in products]
 
         return JsonResponse({'product_list' : tea_list}, status = 200)
