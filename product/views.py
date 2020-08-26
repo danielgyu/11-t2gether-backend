@@ -5,20 +5,22 @@ from django.http  import JsonResponse
 
 from .models      import Product, Size, Filter
 
+
 class AllTeaView(View):
     def get(self, request):
         styles = request.GET.getlist('style', None)
-        teas = request.GET.getlist('type', None)
+        types = request.GET.getlist('type', None)
         tea_products = Product.objects.prefetch_related('size_set', 'refine_set')
 
-        if styles and not teas:
-            tea_products = [tea for tea in tea_products.filter(refine__name__in = styles)]
-
-        elif teas and not styles:
-            tea_products = [tea for tea in tea_products.filter(refine__name__in = teas)]
-
-        elif styles and teas:
-            tea_products = Product.objects.filter(refine__name__in = styles).filter(refine__name__in = teas)
+        q = Q()
+        if styles and types:
+            tea_products = Product.objects.filter(refine__name__in = styles).filter(refine__name__in = types)
+        else:
+            if styles:
+                q &= Q(refine__name__in = styles)
+            if types:
+                q &= Q(refine__name__in = types)
+            tea_products = tea_products.filter(q)
 
         tea_list = [{
             'product_id'    : product.id,
