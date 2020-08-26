@@ -20,4 +20,5 @@ class Wishlist(models.Model):
 class ShoppingBag(models.Model):
     user_id    = models.ForeignKey(User, on_delete = models.CASCADE)
     product_id = models.ForeignKey(Product, on_delete = models.CASCADE)
+    size       = models.CharField(max_length=128, default = None)
     count      = models.IntegerField()
