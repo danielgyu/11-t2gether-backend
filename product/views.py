@@ -1,7 +1,8 @@
 import json
 
-from django.views import View
-from django.http  import JsonResponse
+from django.views     import View
+from django.http      import JsonResponse
+from django.db.models import Q
 
 from .models      import Product, Size, Filter
 
@@ -12,10 +13,10 @@ class AllTeaView(View):
         types = request.GET.getlist('type', None)
         tea_products = Product.objects.prefetch_related('size_set', 'refine_set')
 
-        q = Q()
         if styles and types:
             tea_products = Product.objects.filter(refine__name__in = styles).filter(refine__name__in = types)
         else:
+            q = Q()
             if styles:
                 q &= Q(refine__name__in = styles)
             if types:
