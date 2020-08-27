@@ -6,8 +6,8 @@ import re
 from django.views import View
 from django.http  import JsonResponse
 
-from .models import User, Wishlist
-from product.models import Product
+from .models import User, Wishlist, ShoppingBag
+from product.models import Product, Size
 from .utils import login_decorator
 import my_setting
 
@@ -61,11 +61,30 @@ class LogInView(View):
             if not(User.objects.filter(email = input_email).exists()):
                 return JsonResponse({'message' : 'WRONG_LOGIN_INFORMATION'}, status = 400)
 
-            saved_password = User.objects.get(email = input_email).password
+            login_user = User.objects.get(email = input_email)
+            saved_password = login_user.password
             if bcrypt.checkpw(input_pw.encode(my_setting.ENCODING_FORMAT), saved_password.encode(my_setting.ENCODING_FORMAT)):
-                target_id = User.objects.get(email = input_email).id
+                target_id = login_user.id
                 login_token = jwt.encode({'user_id' : target_id}, my_setting.SECRET_KEY, algorithm = my_setting.HASH_ALGORITHM)
-                return JsonResponse({'message' : login_token.decode(my_setting.ENCODING_FORMAT)}, status = 200)
+
+                login_response = {}
+                login_response['access_token'] = login_token.decode(my_setting.ENCODING_FORMAT)
+                login_response['first_name'] = login_user.first_name
+
+                response_wish_list = []
+                if Wishlist.objects.filter(user_id = login_user).exists():
+                    wish_list = Wishlist.objects.filter(user_id = login_user).select_related('product_id')
+                    for each_item in wish_list:
+                        response_wish_list.append(each_item.product_id.id)
+                login_response['user_wish_list'] = response_wish_list
+
+                user_shoppingbag_count = 0
+                if ShoppingBag.objects.filter(user_id = login_user).exists():
+                    shoppingbag_products = ShoppingBag.objects.filter(user_id = login_user).select_related('product_id')
+                    for each_item in shoppingbag_products:
+                        user_shoppingbag_count += each_item.count
+                login_response['user_shoppingbag_count'] = user_shoppingbag_count
+                return JsonResponse({'login response' : login_response}, status = 200)
         except KeyError:
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
         return JsonResponse({'message' : 'WRONG_LOGIN_INFORMATION'}, status = 400)
@@ -93,14 +112,13 @@ class WishlistView(View):
                 product_id=target_product_id
             ).save()
             res_dict['product_id'] = input_product_id
-            res_dict['is_wished'] = True
+            res_dict['is_wished']  = True
             return JsonResponse({'message':res_dict}, status = 201)
         except KeyError:
             return JsonResponse({'message':'KEY_ERROR'}, status = 400)
 
     @login_decorator
     def get(self, request):
-
         user = request.user
         wish_products = Wishlist.objects.filter(user_id=user).select_related('product_id')
         user_wish_list = [{
@@ -113,3 +131,60 @@ class WishlistView(View):
             'size_image'    : [tea.image for tea in product.product_id.size_set.all()],
         } for product in wish_products]
         return JsonResponse({'product_list' : user_wish_list}, status = 200)
+
+class ShoppingBagView(View):
+    @login_decorator
+    def post(self, request):
+        data              = json.loads(request.body)
+        input_user       = request.user
+        input_product_id = data['product_id']
+        input_size        = data['size_unit']
+        input_count       = data['count']
+
+        if ShoppingBag.objects.filter(user_id = input_user, product_id = input_product_id, size = input_size).exists():
+            target_instance = ShoppingBag.objects.filter(user_id = input_user, product_id = input_product_id, size = input_size).get()
+            target_instance.count = target_instance.count + int(input_count)
+            target_instance.save()
+            return JsonResponse({'message':target_instance.count}, status = 200)
+        input_product = Product.objects.get(id = input_product_id)
+        ShoppingBag(
+            user_id = input_user,
+            product_id = input_product,
+            size = input_size,
+            count = input_count
+        ).save()
+
+        return JsonResponse({'message':'SUCCESS'}, status = 200)
+
+    @login_decorator
+    def get(self, request):
+        user                = request.user
+        target_id   = request.GET.get('product_id', None)
+        target_size = request.GET.get('product_size', None)
+
+        if target_id and target_size:
+            if ShoppingBag.objects.filter(user_id = user, product_id = target_id, size = target_size).exists():
+                ShoppingBag.objects.get(user_id = user, product_id = target_id, size = target_size).delete()
+
+        shopping_products = ShoppingBag.objects.filter(user_id = user).select_related('product_id')
+        size_sets = Size.objects.all()
+        size_checker = lambda target: 1 if target == '-1' else 0
+
+        user_shopping_bag = []
+        for each_item in shopping_products:
+            temp_dict = {}
+            if size_checker(each_item.size):
+                temp_dict['name']  = each_item.product_id.main_name
+                temp_dict['image'] = each_item.product_id.main_image
+                temp_dict['count'] = each_item.count
+                temp_dict['price'] = (each_item.product_id.main_price) * (each_item.count)
+                user_shopping_bag.append(temp_dict)
+            if not(size_checker(each_item.size)):
+                target_size = size_sets.get(product_id = each_item.product_id.id, unit = each_item.size)
+                temp_dict['name']  = each_item.product_id.main_name
+                temp_dict['image'] = target_size.image
+                temp_dict['unit']  = target_size.unit
+                temp_dict['count'] = each_item.count
+                temp_dict['price'] = (target_size.price) * (each_item.count)
+                user_shopping_bag.append(temp_dict)
+        return JsonResponse({'message': user_shopping_bag}, status = 200)
