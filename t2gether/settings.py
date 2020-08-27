@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'user',
     'main',
     'review',
+    'django_elasticsearch_dsl',
 ]
 
 MIDDLEWARE = [
@@ -60,7 +61,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 't2gether.urls'
-
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -149,3 +149,9 @@ CORS_ALLOW_HEADERS = (
     'x-csrftoken',
     'x-requested-with',
 )
+
+ELASTICSEARCH_DSL = {
+    'default' : {
+        'hosts' : 'localhost:9200',
+    }
+}

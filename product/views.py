@@ -62,13 +62,13 @@ class RefineView(View):
 
 class TeaDetailView(View):
     def get(self, request, id):
-        product = Product.objects.prefetch_related('size_set', 'information').get(id = id)
+        product = Product.objects.prefetch_related('size_set', 'information', 'image_set').get(id = id)
 
-        product_detail = [{
+        product_detail = {
             'product_type'     : product.classification.name,
             'product_name'     : product.main_name,
             'product_price'    : product.main_price,
-            'product_image'    : product.main_image,
+            'product_image'    : list(product.image_set.values_list('url', flat = True)),
             'size_unit'        : list(product.size_set.values_list('unit', flat = True)),
             'size_price'       : list(product.size_set.values_list('price', flat = True)),
             'size_image'       : list(product.size_set.values_list('image', flat = True)),
@@ -77,6 +77,6 @@ class TeaDetailView(View):
             'brewing_quantity' : product.guide.quantity,
             'brewing_time'     : product.guide.time,
             'brewing_temp'     : product.guide.temperature,
-        }]
+        }
 
         return JsonResponse({'product_detail' : product_detail}, status = 200)
