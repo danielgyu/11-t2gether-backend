@@ -80,4 +80,3 @@ class TeaDetailView(View):
         }]
 
         return JsonResponse({'product_detail' : product_detail}, status = 200)
-
