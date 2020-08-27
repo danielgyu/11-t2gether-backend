@@ -6,7 +6,9 @@ import re
 from django.views import View
 from django.http  import JsonResponse
 
-from .models import User
+from .models import User, Wishlist
+from product.models import Product
+from .utils import login_decorator
 import my_setting
 
 def pw_validate(pw):
@@ -61,9 +63,53 @@ class LogInView(View):
 
             saved_password = User.objects.get(email = input_email).password
             if bcrypt.checkpw(input_pw.encode(my_setting.ENCODING_FORMAT), saved_password.encode(my_setting.ENCODING_FORMAT)):
-                target_id = User.objects.get(password = saved_password).id
+                target_id = User.objects.get(email = input_email).id
                 login_token = jwt.encode({'user_id' : target_id}, my_setting.SECRET_KEY, algorithm = my_setting.HASH_ALGORITHM)
                 return JsonResponse({'message' : login_token.decode(my_setting.ENCODING_FORMAT)}, status = 200)
         except KeyError:
             return JsonResponse({'message' : 'KEY_ERROR'}, status = 400)
         return JsonResponse({'message' : 'WRONG_LOGIN_INFORMATION'}, status = 400)
+
+class WishlistView(View):
+    @login_decorator
+    def post(self, request):
+        try:
+            data             = json.loads(request.body)
+            user             = request.user
+            input_product_id = data['product_id']
+            if not(Product.objects.filter(id = input_product_id).exists()):
+                return JsonResponse({'message':'WRONG_PRODUCT_ID'}, status = 400)
+
+            target_product_id = Product.objects.get(id = input_product_id)
+            res_dict = {}
+            if Wishlist.objects.filter(user_id = user, product_id = target_product_id).exists():
+                Wishlist.objects.filter(user_id = user, product_id = target_product_id).delete()
+                res_dict['product_id'] = input_product_id
+                res_dict['is_wished'] = False
+                return JsonResponse({'message':res_dict}, status = 204)
+
+            Wishlist(
+                user_id = user,
+                product_id=target_product_id
+            ).save()
+            res_dict['product_id'] = input_product_id
+            res_dict['is_wished'] = True
+            return JsonResponse({'message':res_dict}, status = 201)
+        except KeyError:
+            return JsonResponse({'message':'KEY_ERROR'}, status = 400)
+
+    @login_decorator
+    def get(self, request):
+
+        user = request.user
+        wish_products = Wishlist.objects.filter(user_id=user).select_related('product_id')
+        user_wish_list = [{
+            'product_id'    : product.product_id.id,
+            'product_name'  : product.product_id.main_name,
+            'product_price' : product.product_id.main_price,
+            'product_image' : product.product_id.main_image,
+            'size_unit'     : [tea.unit for tea in product.product_id.size_set.all()],
+            'size_price'    : [tea.price for tea in product.product_id.size_set.all()],
+            'size_image'    : [tea.image for tea in product.product_id.size_set.all()],
+        } for product in wish_products]
+        return JsonResponse({'product_list' : user_wish_list}, status = 200)
