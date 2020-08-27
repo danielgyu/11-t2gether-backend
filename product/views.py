@@ -6,6 +6,8 @@ from django.db.models import Q
 
 from elasticsearch_dsl.connections import connections
 
+from main.models import MainImage
+
 from .models      import Product, Size, Filter
 from .documents   import ProductDocument
 
@@ -63,6 +65,7 @@ class RefineView(View):
 class TeaDetailView(View):
     def get(self, request, id):
         product = Product.objects.prefetch_related('size_set', 'information', 'image_set').get(id = id)
+        brew_image = MainImage.objects.filter(numbering__in = [50, 51, 52])
 
         product_detail = {
             'product_type'     : product.classification.name,
@@ -77,6 +80,9 @@ class TeaDetailView(View):
             'brewing_quantity' : product.guide.quantity,
             'brewing_time'     : product.guide.time,
             'brewing_temp'     : product.guide.temperature,
+            'quantity_img'    : brew_image.get(numbering = 50).info if product.guide.quantity else None,
+            'time_img'         : brew_image.get(numbering = 51).info if product.guide.time else None,
+            'temp_img'         : brew_image.get(numbering = 52).info if product.guide.temperature else None,
         }
 
         return JsonResponse({'product_detail' : product_detail}, status = 200)
