@@ -15,10 +15,10 @@
 
 
 # Demo Video
-[![Demo](https://cdn.glitch.com/b267435c-fe08-4f53-8ded-95a7233fa13f%2Fzigbang-demo.png?v=1595485209854)](https://www.youtube.com/watch?v=kQA25QKZKUQ)
+- 추후
 
 # Modeling
-![Modeling](https://cdn.glitch.com/b267435c-fe08-4f53-8ded-95a7233fa13f%2Fzookbang_20200718_38_32.png?v=1595065302156)
+![Imgur](https://i.imgur.com/IkH7lSt.png)
 
 # Skill Stacks
 * Python
