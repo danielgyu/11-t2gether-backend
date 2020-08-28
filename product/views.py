@@ -8,7 +8,7 @@ from elasticsearch_dsl.connections import connections
 
 from main.models import MainImage
 
-from .models      import Product, Size, Filter
+from .models      import Product, Size, Filter, Refine
 from .documents   import ProductDocument
 
 
@@ -48,30 +48,46 @@ class AllTeaView(View):
 
 class RefineView(View):
     def get(self, request):
-        data     = dict(request.GET.items())
-        tea_products = Filter.objects.prefetch_related('product', 'refine')
+        styles = request.GET.get('style', None)
+        types  = request.GET.get('type', None)
+        tea_products = Refine.objects.prefetch_related('product', 'filter_set')
+        refine_style = tea_products.filter(category = 1).distinct()
+        refine_type  = tea_products.filter(category = 2).distinct()
+        style_filters = type_filters = {}
 
-        q = Q()
-        if data:
-            tea_products = \
-                    list(tea_products.filter(refine__name__in = list(data.values()))\
-                         .values('product__refine__name', 'product__refine__category').distinct())
+        if styles and types:
+            refine_style = refine_style.filter(name__in = [styles])
+            refine_type  = refine_type.filter(name__in = [types])
+        elif styles or types:
+            style_filters = {'product__refine__name__in': [styles]}
+            type_filters  = {'product__refine__name__in': [types]}
+            if styles:
+                refine_type = refine_type.filter(**style_filters).distinct()
+            if types:
+                refine_style = refine_style.filter(**type_filters).distinct()
+        else:
+            refine_style = tea_products.filter(category = 1)
+            refine_type  = tea_products.filter(category = 2)
 
-        if not data:
-            tea_products = list(tea_products.values('refine__category', 'refine__name').distinct())
+        refine_list = {
+            'style ' : [r.name for r in refine_style],
+            'type'   : [t.name for t in refine_type],
+        }
 
-        return JsonResponse({'product_list' : tea_products}, status = 200)
+        return JsonResponse({'refine_list' : refine_list}, status = 200)
 
 class TeaDetailView(View):
     def get(self, request, id):
-        product = Product.objects.prefetch_related('size_set', 'information', 'image_set').get(id = id)
+        product = Product.objects.prefetch_related('size_set', 'information', 
+                                                   'image_set', 'primaryimage_set').get(id = id)
         brew_image = MainImage.objects.filter(numbering__in = [50, 51, 52])
 
         product_detail = {
             'product_type'     : product.classification.name,
             'product_name'     : product.main_name,
             'product_price'    : product.main_price,
-            'product_image'    : list(product.image_set.values_list('url', flat = True)),
+            'big_image'        : list(product.primaryimage_set.values_list('url', flat = True)),
+            'small_image'      : list(product.image_set.values_list('url', flat = True)),
             'size_unit'        : list(product.size_set.values_list('unit', flat = True)),
             'size_price'       : list(product.size_set.values_list('price', flat = True)),
             'size_image'       : list(product.size_set.values_list('image', flat = True)),
