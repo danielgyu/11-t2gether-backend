@@ -1,7 +1,7 @@
 # 11-t2gether-backend Readme
 
 # Introduction
-* T2.com - 호주 유명 Tea 브랜드의 웹사이트
+* T2 - 호주 유명 Tea 브랜드의 웹사이트(t2tea.com)
 * 개발기간 : 2020.08.18 ~ 2020.08.28(12일)
 * 개발인원 : Front-end 4명(오승하, 강예지, 김규영, 마상원), Back-end 2명(이건규, 왕민욱)
 * [Front-end Github](https://github.com/wecode-bootcamp-korea/11-t2gether-frontend)
