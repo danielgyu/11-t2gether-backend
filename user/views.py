@@ -25,9 +25,9 @@ class JoinView(View):
             input_email = data['email']
             input_pw    = data['password']
             input_phone = data['phone']
-            input_year  = "2020"
-            input_month = "08"
-            input_day   = "28"
+            input_year  = "2020"    #data['birthyear']
+            input_month = "08"      #data['birthmonth']
+            input_day   = "28"      #data['birthday']
 #            input_news  = data['is_newsletter_subscribed']
 
             temp_birth = input_year + '-' + input_month + '-' + input_day
@@ -139,64 +139,7 @@ class WishlistView(View):
         return JsonResponse({'product_list' : user_wish_list}, status = 200)
 
 class ShoppingBagView(View):
-    @login_decorator
-    def post(self, request):
-        data             = json.loads(request.body)
-        input_user       = request.user
-        input_product_id = data['product_id']
-        input_size       = data['size_unit']
-        input_count      = data['count']
-
-        if ShoppingBag.objects.filter(user_id = input_user, product_id = input_product_id, size = input_size).exists():
-            target_instance = ShoppingBag.objects.filter(user_id = input_user, product_id = input_product_id, size = input_size).get()
-            target_instance.count = target_instance.count + int(input_count)
-            target_instance.save()
-        else:
-            input_product = Product.objects.get(id = input_product_id)
-            ShoppingBag(
-                user_id    = input_user,
-                product_id = input_product,
-                size       = input_size,
-                count      = input_count
-            ).save()
-
-        shopping_products = ShoppingBag.objects.filter(user_id = input_user).select_related('product_id')
-        size_sets = Size.objects.all()
-        size_checker = lambda target: 1 if target == '-1' else 0
-
-        user_shopping_bag = []
-        shopping_bag_ordering = 1
-        for each_item in shopping_products:
-            temp_dict = {}
-            temp_dict['ordering_number'] = shopping_bag_ordering
-            shopping_bag_ordering += 1
-            if size_checker(each_item.size):
-                temp_dict['name']  = each_item.product_id.main_name
-                temp_dict['image'] = each_item.product_id.main_image
-                temp_dict['count'] = each_item.count
-                temp_dict['price'] = (each_item.product_id.main_price) * (each_item.count)
-                user_shopping_bag.append(temp_dict)
-            if not(size_checker(each_item.size)):
-                target_size = size_sets.get(product_id = each_item.product_id.id, unit = each_item.size)
-                temp_dict['name']  = each_item.product_id.main_name
-                temp_dict['image'] = target_size.image
-                temp_dict['unit']  = target_size.unit
-                temp_dict['count'] = each_item.count
-                temp_dict['price'] = (target_size.price) * (each_item.count)
-                user_shopping_bag.append(temp_dict)
-        return JsonResponse({'message': user_shopping_bag}, status = 200)
-
-    @login_decorator
-    def get(self, request):
-        user                = request.user
-        target_name   = request.GET.get('product_name', None)
-        target_size = request.GET.get('product_size', None)
-
-        if target_name and target_size:
-            target_id = Product.objects.get(main_name = target_name)
-            if ShoppingBag.objects.filter(user_id = user, product_id = target_id, size = target_size).exists():
-                ShoppingBag.objects.get(user_id = user, product_id = target_id, size = target_size).delete()
-
+    def response_dict_generator(self, user):
         shopping_products = ShoppingBag.objects.filter(user_id = user).select_related('product_id')
         size_sets = Size.objects.all()
         size_checker = lambda target: 1 if target == '-1' else 0
@@ -221,4 +164,52 @@ class ShoppingBagView(View):
                 temp_dict['count'] = each_item.count
                 temp_dict['price'] = (target_size.price) * (each_item.count)
                 user_shopping_bag.append(temp_dict)
+        return user_shopping_bag
+
+    @login_decorator
+    def post(self, request):
+        data             = json.loads(request.body)
+        input_user       = request.user
+        input_product_id = data['product_id']
+        input_size       = data['size_unit']
+        input_count      = data['count']
+
+        if ShoppingBag.objects.filter(user_id = input_user, product_id = input_product_id, size = input_size).exists():
+            target_instance = ShoppingBag.objects.filter(user_id = input_user, product_id = input_product_id, size = input_size).get()
+            target_instance.count = target_instance.count + int(input_count)
+            target_instance.save()
+        else:
+            input_product = Product.objects.get(id = input_product_id)
+            ShoppingBag(
+                user_id    = input_user,
+                product_id = input_product,
+                size       = input_size,
+                count      = input_count
+            ).save()
+
+        user_shopping_bag = self.response_dict_generator(user)
+        return JsonResponse({'message': user_shopping_bag}, status = 200)
+
+    @login_decorator
+    def get(self, request):
+        user              = request.user
+        user_shopping_bag = self.response_dict_generator(user)
+        return JsonResponse({'message': user_shopping_bag}, status = 200)
+
+    @login_decorator
+    def delete(self, request):
+        user = request.user
+        target_name = request.GET.get('product_name', None)
+        target_size = request.GET.get('product_size', None)
+
+        if target_name and target_size:
+            target_id = Product.objects.get(main_name = target_name)
+            if ShoppingBag.objects.filter(user_id = user,
+                                          product_id = target_id,
+                                          size = target_size).exists():
+                ShoppingBag.objects.get(user_id = user,
+                                        product_id = target_id,
+                                        size = target_size).delete()
+
+        user_shopping_bag = self.response_dict_generator(user)
         return JsonResponse({'message': user_shopping_bag}, status = 200)
