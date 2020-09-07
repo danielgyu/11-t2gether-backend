@@ -7,7 +7,7 @@
 * [Front-end Github](https://github.com/wecode-bootcamp-korea/11-t2gether-frontend)
 * [Back-end Github](https://github.com/wecode-bootcamp-korea/11-t2gether-backend)
 
-# Archivement
+# Achivement
 - 프론트엔드 사이드와의 소통을 경험해보고 보다 나은 협업이 될 수 있도록 노력
 - 실질적으로 웹 서비스가 작동하는 방식을 구현
 - 실무에서 사용하는 개발 방법론을 실제로 적용해보면서 익숙해지도록 노력 ex) 스크럼
